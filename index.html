@@ -13,7 +13,6 @@
         #gameCanvas {
             background-color: #fff;
             border: 1px solid #000;
-            display: block;
         }
         #fullscreenButton, #resetButton {
             position: absolute;
@@ -73,7 +72,7 @@
     <div id="message">You reached the objective!</div>
     <div id="timer">Time left: 30s</div>
     <div id="endScreen"></div>
-    <canvas id="gameCanvas"></canvas>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
@@ -87,16 +86,12 @@
         let lastTime = 0;
         let timer = 30;
         let gameInterval;
-        let starCount = 0;
-        const maxStars = 5;
+        let starCount = 0; // To track the number of stars collected
+        const maxStars = 5; // Number of stars to collect
         
         let square, objective, barriers;
-        let touchControls = { up: false, down: false, left: false, right: false };
-
+        
         function initializeGame() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            
             square = {
                 x: 50,
                 y: 50,
@@ -176,10 +171,10 @@
             
             const movement = square.speed * deltaTime / 1000;
             
-            if (touchControls.up) square.y -= movement;
-            if (touchControls.down) square.y += movement;
-            if (touchControls.left) square.x -= movement;
-            if (touchControls.right) square.x += movement;
+            if (keyState['w']) square.y -= movement;
+            if (keyState['s']) square.y += movement;
+            if (keyState['a']) square.x -= movement;
+            if (keyState['d']) square.x += movement;
             
             // Check boundaries
             square.x = Math.max(0, Math.min(square.x, canvas.width - square.size));
@@ -278,4 +273,16 @@
                     canvas.requestFullscreen();
                 } else if (canvas.mozRequestFullScreen) { // Firefox
                     canvas.mozRequestFullScreen();
-                } else if (canvas.webkit
+                } else if (canvas.webkitRequestFullscreen) { // Chrome, Safari, and Opera
+                    canvas.webkitRequestFullscreen();
+                } else if (canvas.msRequestFullscreen) { // IE/Edge
+                    canvas.msRequestFullscreen();
+                }
+                isFullscreen = true;
+                adjustFullscreenElements();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) { // Firefox
+                    document.mozCancelFullScreen();
+                } else if (document.webkit
