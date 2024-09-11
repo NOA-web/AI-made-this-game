@@ -13,6 +13,7 @@
         #gameCanvas {
             background-color: #fff;
             border: 1px solid #000;
+            display: block; /* Ensures canvas scales properly */
         }
         #fullscreenButton, #resetButton {
             position: absolute;
@@ -171,10 +172,10 @@
             
             const movement = square.speed * deltaTime / 1000;
             
-            if (keyState['w']) square.y -= movement;
-            if (keyState['s']) square.y += movement;
-            if (keyState['a']) square.x -= movement;
-            if (keyState['d']) square.x += movement;
+            if (keyState['w'] || keyState['ArrowUp']) square.y -= movement;
+            if (keyState['s'] || keyState['ArrowDown']) square.y += movement;
+            if (keyState['a'] || keyState['ArrowLeft']) square.x -= movement;
+            if (keyState['d'] || keyState['ArrowRight']) square.x += movement;
             
             // Check boundaries
             square.x = Math.max(0, Math.min(square.x, canvas.width - square.size));
@@ -271,80 +272,3 @@
             if (!isFullscreen) {
                 if (canvas.requestFullscreen) {
                     canvas.requestFullscreen();
-                } else if (canvas.mozRequestFullScreen) { // Firefox
-                    canvas.mozRequestFullScreen();
-                } else if (canvas.webkitRequestFullscreen) { // Chrome, Safari, and Opera
-                    canvas.webkitRequestFullscreen();
-                } else if (canvas.msRequestFullscreen) { // IE/Edge
-                    canvas.msRequestFullscreen();
-                }
-                isFullscreen = true;
-                adjustFullscreenElements();
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.mozCancelFullScreen) { // Firefox
-                    document.mozCancelFullScreen();
-                } else if (document.webkitExitFullscreen) { // Chrome, Safari, and Opera
-                    document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) { // IE/Edge
-                    document.msExitFullscreen();
-                }
-                isFullscreen = false;
-                adjustFullscreenElements();
-            }
-        }
-        
-        function adjustFullscreenElements() {
-            if (isFullscreen) {
-                canvas.style.width = '100vw';
-                canvas.style.height = '100vh';
-                timerElement.style.position = 'fixed';
-                timerElement.style.top = '10px';
-                timerElement.style.right = '10px';
-                endScreen.style.position = 'fixed';
-                endScreen.style.top = '50%';
-                endScreen.style.left = '50%';
-                resetButton.style.display = 'none';
-            } else {
-                canvas.style.width = '';
-                canvas.style.height = '';
-                timerElement.style.position = 'absolute';
-                timerElement.style.top = '10px';
-                timerElement.style.right = '10px';
-                endScreen.style.position = 'absolute';
-                resetButton.style.display = 'block';
-            }
-        }
-        
-        function resetGame() {
-            initializeGame();
-            if (gameInterval) {
-                clearInterval(gameInterval);
-            }
-            startGame();
-        }
-        
-        const keyState = {};
-        document.addEventListener('keydown', (event) => {
-            keyState[event.key] = true;
-        });
-        document.addEventListener('keyup', (event) => {
-            keyState[event.key] = false;
-        });
-        
-        fullscreenButton.addEventListener('click', toggleFullscreen);
-        resetButton.addEventListener('click', resetGame);
-        
-        // Initialize the game and start the update loop
-        function startGame() {
-            initializeGame();
-            gameInterval = setInterval(() => {
-                requestAnimationFrame(updateGame);
-            }, 1000 / 60); // 60 FPS
-        }
-        
-        startGame();
-    </script>
-</body>
-</html>
