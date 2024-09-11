@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Square Mover with Spinning Star, Barriers, and Timer</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #f0f0f0;
+        }
+        #gameCanvas {
+            background-color: #fff;
+            border: 1px solid #000;
+        }
+        #fullscreenButton, #resetButton {
+            position: absolute;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #fullscreenButton {
+            top: 10px;
+            right: 10px;
+            background-color: #007bff;
+            color: white;
+        }
+        #fullscreenButton:hover {
+            background-color: #0056b3;
+        }
+        #resetButton {
+            bottom: 10px;
+            right: 10px;
+            background-color: #28a745;
+            color: white;
+        }
+        #resetButton:hover {
+            background-color: #218838;
+        }
+        #message {
+            position: absolute;
+            top: 10px;
+            left: 10px;
+            font-size: 18px;
+            color: green;
+            display: none;
+        }
+        #timer {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 18px;
+            color: black;
+        }
+        #endScreen {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            font-size: 48px;
+            font-weight: bold;
+            color: red;
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <button id="fullscreenButton">Toggle Fullscreen</button>
+    <button id="resetButton">Reset Game</button>
+    <div id="message">You reached the objective!</div>
+    <div id="timer">Time left: 30s</div>
+    <div id="endScreen"></div>
+    <canvas id="gameCanvas" width="800" height="600"></canvas>
+    <script>
+        const canvas = document.getElementById('gameCanvas');
+        const ctx = canvas.getContext('2d');
+        const fullscreenButton = document.getElementById('fullscreenButton');
+        const resetButton = document.getElementById('resetButton');
+        const message = document.getElementById('message');
+        const timerElement = document.getElementById('timer');
+        const endScreen = document.getElementById('endScreen');
+        
+        let isFullscreen = false;
+        let lastTime = 0;
+        let timer = 30;
+        let gameInterval;
+        let starCount = 0; // To track the number of stars collected
+        const maxStars = 5; // Number of stars to collect
+        
+        let square, objective, barriers;
+        
+        function initializeGame() {
+            square = {
+                x: 50,
+                y: 50,
+                size: 30,
+                speed: 200,
+                color: 'blue'
+            };
+            
+            objective = {
+                x: Math.random() * (canvas.width - 30),
+                y: Math.random() * (canvas.height - 30),
+                size: 30,
+                color: 'gold',
+                angle: 0,
+                rotationSpeed: 0.05
+            };
+            
+            barriers = generateRandomBarriers(3);
+            starCount = 0;
+            timer = 30;
+            timerElement.textContent = `Time left: ${Math.max(0, Math.ceil(timer))}s`;
+            endScreen.style.display = 'none';
+        }
+        
+        function generateRandomBarriers(count) {
+            const barriers = [];
+            for (let i = 0; i < count; i++) {
+                barriers.push({
+                    x: Math.random() * (canvas.width - 50),
+                    y: Math.random() * (canvas.height - 50),
+                    width: 50 + Math.random() * 50,
+                    height: 50 + Math.random() * 50
+                });
+            }
+            return barriers;
+        }
+        
+        function drawSquare() {
+            ctx.fillStyle = square.color;
+            ctx.fillRect(square.x, square.y, square.size, square.size);
+        }
+        
+        function drawStar(x, y, size, color, angle) {
+            const spikes = 5;
+            const outerRadius = size;
+            const innerRadius = size / 2;
+            const step = Math.PI / spikes;
+            ctx.beginPath();
+            ctx.translate(x + size / 2, y + size / 2);
+            ctx.rotate(angle);
+            for (let i = 0; i < spikes * 2; i++) {
+                const radius = i % 2 === 0 ? outerRadius : innerRadius;
+                const xPos = radius * Math.cos(i * step);
+                const yPos = radius * Math.sin(i * step);
+                ctx.lineTo(xPos, yPos);
+            }
+            ctx.closePath();
+            ctx.fillStyle = color;
+            ctx.fill();
+            ctx.resetTransform();
+        }
+        
+        function drawObjective() {
+            drawStar(objective.x, objective.y, objective.size / 2, objective.color, objective.angle);
+        }
+        
+        function drawBarriers() {
+            ctx.fillStyle = 'red';
+            barriers.forEach(barrier => {
+                ctx.fillRect(barrier.x, barrier.y, barrier.width, barrier.height);
+            });
+        }
+        
+        function moveSquare(deltaTime) {
+            const oldX = square.x;
+            const oldY = square.y;
+            
+            const movement = square.speed * deltaTime / 1000;
+            
+            if (keyState['w']) square.y -= movement;
+            if (keyState['s']) square.y += movement;
+            if (keyState['a']) square.x -= movement;
+            if (keyState['d']) square.x += movement;
+            
+            // Check boundaries
+            square.x = Math.max(0, Math.min(square.x, canvas.width - square.size));
+            square.y = Math.max(0, Math.min(square.y, canvas.height - square.size));
+            
+            if (checkCollision()) {
+                square.x = oldX;
+                square.y = oldY;
+            }
+            
+            if (checkObjective()) {
+                starCount++;
+                if (starCount < maxStars) {
+                    showMessage();
+                    resetObjective();
+                    resetTimer();
+                    moveBarriers();
+                } else {
+                    showEndScreen(true); // WIN
+                }
+            }
+        }
+        
+        function checkCollision() {
+            return barriers.some(barrier => {
+                return !(square.x > barrier.x + barrier.width ||
+                         square.x + square.size < barrier.x ||
+                         square.y > barrier.y + barrier.height ||
+                         square.y + square.size < barrier.y);
+            });
+        }
+        
+        function checkObjective() {
+            return !(square.x > objective.x + objective.size ||
+                     square.x + square.size < objective.x ||
+                     square.y > objective.y + objective.size ||
+                     square.y + square.size < objective.y);
+        }
+        
+        function resetObjective() {
+            objective.x = Math.random() * (canvas.width - objective.size);
+            objective.y = Math.random() * (canvas.height - objective.size);
+        }
+        
+        function resetTimer() {
+            timer = 30;
+        }
+        
+        function moveBarriers() {
+            barriers = generateRandomBarriers(barriers.length);
+        }
+        
+        function showMessage() {
+            message.style.display = 'block';
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 1000); // Hide the message after 1 second
+        }
+        
+        function showEndScreen(win) {
+            endScreen.textContent = win ? 'WIN' : 'LOSE';
+            endScreen.style.display = 'block';
+            clearInterval(gameInterval); // Stop the game loop
+        }
+        
+        function updateGame(time) {
+            if (starCount >= maxStars && timer > 0) return; // Prevent update if game is over
+            
+            const deltaTime = time - lastTime;
+            lastTime = time;
+            
+            objective.angle += objective.rotationSpeed;
+            
+            moveSquare(deltaTime);
+            
+            drawGame();
+            
+            if (timer > 0) {
+                timer -= deltaTime / 1000;
+                timerElement.textContent = `Time left: ${Math.max(0, Math.ceil(timer))}s`;
+            } else {
+                showEndScreen(false); // LOSE
+            }
+        }
+        
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawSquare();
+            drawObjective();
+            drawBarriers();
+        }
+        
+        function toggleFullscreen() {
+            if (!isFullscreen) {
+                if (canvas.requestFullscreen) {
+                    canvas.requestFullscreen();
+                } else if (canvas.mozRequestFullScreen) { // Firefox
+                    canvas.mozRequestFullScreen();
+                } else if (canvas.webkitRequestFullscreen) { // Chrome, Safari, and Opera
+                    canvas.webkitRequestFullscreen();
+                } else if (canvas.msRequestFullscreen) { // IE/Edge
+                    canvas.msRequestFullscreen();
+                }
+                isFullscreen = true;
+                adjustFullscreenElements();
+            } else {
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) { // Firefox
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) { // Chrome, Safari, and Opera
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { // IE/Edge
+                    document.msExitFullscreen();
+                }
+                isFullscreen = false;
+                adjustFullscreenElements();
+            }
+        }
+        
+        function adjustFullscreenElements() {
+            if (isFullscreen) {
+                canvas.style.width = '100vw';
+                canvas.style.height = '100vh';
+                timerElement.style.position = 'fixed';
+                timerElement.style.top = '10px';
+                timerElement.style.right = '10px';
+                endScreen.style.position = 'fixed';
+                endScreen.style.top = '50%';
+                endScreen.style.left = '50%';
+                resetButton.style.display = 'none';
+            } else {
+                canvas.style.width = '';
+                canvas.style.height = '';
+                timerElement.style.position = 'absolute';
+                timerElement.style.top = '10px';
+                timerElement.style.right = '10px';
+                endScreen.style.position = 'absolute';
+                resetButton.style.display = 'block';
+            }
+        }
+        
+        function resetGame() {
+            initializeGame();
+            if (gameInterval) {
+                clearInterval(gameInterval);
+            }
+            startGame();
+        }
+        
+        const keyState = {};
+        document.addEventListener('keydown', (event) => {
+            keyState[event.key] = true;
+        });
+        document.addEventListener('keyup', (event) => {
+            keyState[event.key] = false;
+        });
+        
+        fullscreenButton.addEventListener('click', toggleFullscreen);
+        resetButton.addEventListener('click', resetGame);
+        
+        // Initialize the game and start the update loop
+        function startGame() {
+            initializeGame();
+            gameInterval = setInterval(() => {
+                requestAnimationFrame(updateGame);
+            }, 1000 / 60); // 60 FPS
+        }
+        
+        startGame();
+    </script>
+</body>
+</html>
