@@ -70,7 +70,7 @@
     <button id="fullscreenButton">Toggle Fullscreen</button>
     <button id="resetButton">Reset Game</button>
     <div id="message">You reached the objective!</div>
-    <div id="timer">Time left: 30s</div>
+    <div id="timer">Time left: 10s</div>
     <div id="endScreen"></div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     <script>
@@ -84,7 +84,7 @@
         
         let isFullscreen = false;
         let lastTime = 0;
-        let timer = 30;
+        let timer = 10;
         let gameInterval;
         let starCount = 0; // To track the number of stars collected
         const maxStars = 5; // Number of stars to collect
@@ -111,7 +111,7 @@
             
             barriers = generateRandomBarriers(3);
             starCount = 0;
-            timer = 30;
+            timer = 10;
             timerElement.textContent = `Time left: ${Math.max(0, Math.ceil(timer))}s`;
             endScreen.style.display = 'none';
         }
@@ -341,7 +341,7 @@
             initializeGame();
             gameInterval = setInterval(() => {
                 requestAnimationFrame(updateGame);
-            }, 1000 / 60); // 60 FPS
+            }, 1000 / 240); // 240 FPS
         }
         
         startGame();
