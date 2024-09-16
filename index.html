@@ -131,6 +131,9 @@
         #endlessMode:hover {
             background: darkred;
         }
+        #fpsSlider {
+            width: 100%;
+        }
     </style>
 </head>
 <body>
@@ -143,7 +146,7 @@
     <div id="settingsTab">
         <div id="settingsContent">
             <span id="closeSettings">✖️</span>
-            <div id="fpsCounter">FPS: 0</div>
+            <div id="fpsCounter">FPS: 60</div>
             <div id="settingsOptions">
                 <div class="setting-group">
                     <label>
@@ -164,6 +167,13 @@
                     </label>
                 </div>
                 <div class="setting-group">
+                    <label>
+                        FPS Limit:
+                        <input type="range" id="fpsSlider" min="30" max="120" step="1" value="60">
+                        <span id="fpsValue">60</span>
+                    </label>
+                </div>
+                <div class="setting-group">
                     <button id="endlessMode">Endless Mode</button>
                 </div>
                 <div class="setting-group">
@@ -178,6 +188,18 @@
                     </label>
                     <label>
                         Right: <input type="text" id="keyRight" value="d">
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" id="krazyStarz">
+                        Krazy Starz :D
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" id="twoPlayerMode">
+                        Two Player Mode
                     </label>
                 </div>
             </div>
@@ -196,6 +218,8 @@
         const settingsTab = document.getElementById('settingsTab');
         const closeSettings = document.getElementById('closeSettings');
         const fpsCounter = document.getElementById('fpsCounter');
+        const fpsSlider = document.getElementById('fpsSlider');
+        const fpsValue = document.getElementById('fpsValue');
         const rainbowModeCheckbox = document.getElementById('rainbowMode');
         const showGridCheckbox = document.getElementById('showGrid');
         const enableSoundCheckbox = document.getElementById('enableSound');
@@ -204,6 +228,8 @@
         const keyDownInput = document.getElementById('keyDown');
         const keyLeftInput = document.getElementById('keyLeft');
         const keyRightInput = document.getElementById('keyRight');
+        const krazyStarzCheckbox = document.getElementById('krazyStarz');
+        const twoPlayerModeCheckbox = document.getElementById('twoPlayerMode');
 
         let isFullscreen = false;
         let lastTime = 0;
@@ -211,11 +237,13 @@
         let gameInterval;
         let starCount = 0;
         const maxStars = 5;
-        let fps = 0;
+        let fps = 60;
         let frameCount = 0;
         let lastFpsUpdate = 0;
         let endlessMode = false;
         let rainbowMode = false;
+        let krazyStarz = false;
+        let twoPlayerMode = false;
 
         // Default key bindings
         const keyBindings = {
@@ -225,9 +253,10 @@
             right: keyRightInput.value
         };
 
-        let square, objective, barriers;
+        let square, objective, barriers, krazyStars, playerTwoSquare;
         let showGrid = false;
         let enableSound = false;
+        const stars = [];
 
         function initializeGame() {
             square = {
@@ -242,34 +271,49 @@
                 x: Math.random() * (canvas.width - 30),
                 y: Math.random() * (canvas.height - 30),
                 size: 30,
-                color: 'gold',
-                angle: 0,
-                rotationSpeed: 0.01
+                color: 'yellow',
+                angle: Math.random() * Math.PI * 2
             };
 
-            barriers = generateRandomBarriers(3);
-            starCount = 0;
+            barriers = [
+                { x: 100, y: 150, width: 60, height: 20 },
+                { x: 200, y: 300, width: 20, height: 60 },
+                { x: 400, y: 200, width: 100, height: 20 }
+            ];
+
+            krazyStars = krazyStarz ? Array.from({ length: 10 }, () => ({
+                x: Math.random() * (canvas.width - 30),
+                y: Math.random() * (canvas.height - 30),
+                size: 20,
+                color: getRainbowColor(),
+                angle: Math.random() * Math.PI * 2,
+                speed: Math.random() * 2 + 1
+            })) : [];
+
+            if (twoPlayerMode) {
+                playerTwoSquare = {
+                    x: canvas.width - 80,
+                    y: canvas.height - 80,
+                    size: 30,
+                    speed: 235,
+                    color: 'red'
+                };
+            }
+
             timer = endlessMode ? Infinity : 10;
-            timerElement.textContent = endlessMode ? 'Endless Mode' : `Time left: ${Math.max(0, Math.ceil(timer))}s`;
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            message.style.display = 'none';
             endScreen.style.display = 'none';
         }
 
-        function generateRandomBarriers(count) {
-            const barriers = [];
-            for (let i = 0; i < count; i++) {
-                barriers.push({
-                    x: Math.random() * (canvas.width - 50),
-                    y: Math.random() * (canvas.height - 50),
-                    width: 50 + Math.random() * 50,
-                    height: 50 + Math.random() * 50
-                });
-            }
-            return barriers;
-        }
-
         function drawSquare() {
-            ctx.fillStyle = rainbowMode ? getRainbowColor() : square.color;
+            ctx.fillStyle = square.color;
             ctx.fillRect(square.x, square.y, square.size, square.size);
+
+            if (twoPlayerMode) {
+                ctx.fillStyle = playerTwoSquare.color;
+                ctx.fillRect(playerTwoSquare.x, playerTwoSquare.y, playerTwoSquare.size, playerTwoSquare.size);
+            }
         }
 
         function drawStar(x, y, size, color, angle) {
@@ -300,6 +344,12 @@
             ctx.fillStyle = 'red';
             barriers.forEach(barrier => {
                 ctx.fillRect(barrier.x, barrier.y, barrier.width, barrier.height);
+            });
+        }
+
+        function drawKrazyStars() {
+            krazyStars.forEach(star => {
+                drawStar(star.x, star.y, star.size / 2, star.color, star.angle);
             });
         }
 
@@ -334,6 +384,43 @@
                     showEndScreen(true); // WIN
                 }
             }
+
+            if (twoPlayerMode) {
+                movePlayerTwo(deltaTime);
+            }
+        }
+
+        function movePlayerTwo(deltaTime) {
+            const oldX = playerTwoSquare.x;
+            const oldY = playerTwoSquare.y;
+
+            const movement = playerTwoSquare.speed * deltaTime / 1000;
+
+            if (keyState['ArrowUp']) playerTwoSquare.y -= movement;
+            if (keyState['ArrowDown']) playerTwoSquare.y += movement;
+            if (keyState['ArrowLeft']) playerTwoSquare.x -= movement;
+            if (keyState['ArrowRight']) playerTwoSquare.x += movement;
+
+            // Check boundaries
+            playerTwoSquare.x = Math.max(0, Math.min(playerTwoSquare.x, canvas.width - playerTwoSquare.size));
+            playerTwoSquare.y = Math.max(0, Math.min(playerTwoSquare.y, canvas.height - playerTwoSquare.size));
+
+            if (checkCollision()) {
+                playerTwoSquare.x = oldX;
+                playerTwoSquare.y = oldY;
+            }
+
+            if (checkObjectivePlayerTwo()) {
+                starCount++;
+                if (starCount < maxStars) {
+                    showMessage();
+                    resetObjective();
+                    resetTimer();
+                    moveBarriers();
+                } else {
+                    showEndScreen(true); // WIN
+                }
+            }
         }
 
         function checkCollision() {
@@ -352,6 +439,13 @@
                      square.y + square.size < objective.y);
         }
 
+        function checkObjectivePlayerTwo() {
+            return !(playerTwoSquare.x > objective.x + objective.size ||
+                     playerTwoSquare.x + playerTwoSquare.size < objective.x ||
+                     playerTwoSquare.y > objective.y + objective.size ||
+                     playerTwoSquare.y + playerTwoSquare.size < objective.y);
+        }
+
         function resetObjective() {
             objective.x = Math.random() * (canvas.width - objective.size);
             objective.y = Math.random() * (canvas.height - objective.size);
@@ -367,6 +461,15 @@
                 barrier.y += Math.random() * 10 - 5;
                 barrier.x = Math.max(0, Math.min(barrier.x, canvas.width - barrier.width));
                 barrier.y = Math.max(0, Math.min(barrier.y, canvas.height - barrier.height));
+            });
+        }
+
+        function moveKrazyStars(deltaTime) {
+            krazyStars.forEach(star => {
+                star.x += star.speed * Math.cos(star.angle) * deltaTime / 1000;
+                star.y += star.speed * Math.sin(star.angle) * deltaTime / 1000;
+                star.x = (star.x + canvas.width) % canvas.width;
+                star.y = (star.y + canvas.height) % canvas.height;
             });
         }
 
@@ -389,7 +492,7 @@
             }
             frameCount++;
             if (timestamp - lastFpsUpdate >= 1000) {
-                fps = frameCount;
+                fps = Math.min(parseInt(fpsSlider.value, 10), frameCount);
                 fpsCounter.textContent = `FPS: ${fps}`;
                 frameCount = 0;
                 lastFpsUpdate = timestamp;
@@ -415,7 +518,12 @@
             drawSquare();
             drawObjective();
             drawBarriers();
+            drawKrazyStars();
             moveSquare(deltaTime);
+
+            if (twoPlayerMode) {
+                movePlayerTwo(deltaTime);
+            }
 
             requestAnimationFrame(gameLoop);
         }
@@ -436,53 +544,70 @@
 
         // Fullscreen Button
         fullscreenButton.addEventListener('click', () => {
-            if (!document.fullscreenElement) {
-                canvas.requestFullscreen();
-            } else {
+            if (isFullscreen) {
                 document.exitFullscreen();
+            } else {
+                canvas.requestFullscreen();
             }
+            isFullscreen = !isFullscreen;
         });
 
         // Reset Button
-        resetButton.addEventListener('click', () => {
-            initializeGame();
-        });
+        resetButton.addEventListener('click', startGame);
 
         // Settings Button
         settingsButton.addEventListener('click', () => {
             settingsTab.style.display = 'flex';
         });
 
-        // Close Settings Tab
+        // Close Settings
         closeSettings.addEventListener('click', () => {
             settingsTab.style.display = 'none';
-            // Update key bindings
-            keyBindings.up = keyUpInput.value;
-            keyBindings.down = keyDownInput.value;
-            keyBindings.left = keyLeftInput.value;
-            keyBindings.right = keyRightInput.value;
-
-            // Update settings
-            rainbowMode = rainbowModeCheckbox.checked;
-            showGrid = showGridCheckbox.checked;
-            enableSound = enableSoundCheckbox.checked;
-            initializeGame();
         });
 
-        // Endless Mode Button
+        // FPS Slider
+        fpsSlider.addEventListener('input', () => {
+            fpsValue.textContent = fpsSlider.value;
+            fps = parseInt(fpsSlider.value, 10);
+        });
+
+        // Settings Changes
+        rainbowModeCheckbox.addEventListener('change', () => {
+            rainbowMode = rainbowModeCheckbox.checked;
+            square.color = rainbowMode ? getRainbowColor() : 'blue';
+        });
+
+        showGridCheckbox.addEventListener('change', () => {
+            showGrid = showGridCheckbox.checked;
+        });
+
+        enableSoundCheckbox.addEventListener('change', () => {
+            enableSound = enableSoundCheckbox.checked;
+        });
+
         endlessModeButton.addEventListener('click', () => {
             endlessMode = !endlessMode;
-            endlessModeButton.textContent = endlessMode ? 'Endless Mode (ON)' : 'Endless Mode (OFF)';
+            endlessModeButton.textContent = endlessMode ? 'Endless Mode (On)' : 'Endless Mode (Off)';
+        });
+
+        krazyStarzCheckbox.addEventListener('change', () => {
+            krazyStarz = krazyStarzCheckbox.checked;
             initializeGame();
         });
 
-        // Key Controls
-        const keyState = {};
-        window.addEventListener('keydown', (e) => {
-            keyState[e.key] = true;
+        twoPlayerModeCheckbox.addEventListener('change', () => {
+            twoPlayerMode = twoPlayerModeCheckbox.checked;
+            initializeGame();
         });
-        window.addEventListener('keyup', (e) => {
-            keyState[e.key] = false;
+
+        // Key Bindings
+        const keyState = {};
+        document.addEventListener('keydown', (event) => {
+            keyState[event.key] = true;
+        });
+
+        document.addEventListener('keyup', (event) => {
+            keyState[event.key] = false;
         });
 
         startGame();
