@@ -130,18 +130,18 @@
         const settingsTab = document.getElementById('settingsTab');
         const closeSettings = document.getElementById('closeSettings');
         const fpsCounter = document.getElementById('fpsCounter');
-        
+
         let isFullscreen = false;
         let lastTime = 0;
         let timer = 10;
         let gameInterval;
         let starCount = 0; // To track the number of stars collected
         const maxStars = 5; // Number of stars to collect
-        
-        let square, objective, barriers;
         let fps = 0;
         let frameCount = 0;
         let lastFpsUpdate = 0;
+
+        let square, objective, barriers;
 
         function initializeGame() {
             square = {
@@ -167,7 +167,7 @@
             timerElement.textContent = `Time left: ${Math.max(0, Math.ceil(timer))}s`;
             endScreen.style.display = 'none';
         }
-        
+
         function generateRandomBarriers(count) {
             const barriers = [];
             for (let i = 0; i < count; i++) {
@@ -180,12 +180,12 @@
             }
             return barriers;
         }
-        
+
         function drawSquare() {
             ctx.fillStyle = square.color;
             ctx.fillRect(square.x, square.y, square.size, square.size);
         }
-        
+
         function drawStar(x, y, size, color, angle) {
             const spikes = 5;
             const outerRadius = size;
@@ -205,18 +205,18 @@
             ctx.fill();
             ctx.resetTransform();
         }
-        
+
         function drawObjective() {
             drawStar(objective.x, objective.y, objective.size / 2, objective.color, objective.angle);
         }
-        
+
         function drawBarriers() {
             ctx.fillStyle = 'red';
             barriers.forEach(barrier => {
                 ctx.fillRect(barrier.x, barrier.y, barrier.width, barrier.height);
             });
         }
-        
+
         function moveSquare(deltaTime) {
             const oldX = square.x;
             const oldY = square.y;
@@ -249,7 +249,7 @@
                 }
             }
         }
-        
+
         function checkCollision() {
             return barriers.some(barrier => {
                 return !(square.x > barrier.x + barrier.width ||
@@ -258,13 +258,121 @@
                          square.y + square.size < barrier.y);
             });
         }
-        
+
         function checkObjective() {
             return !(square.x > objective.x + objective.size ||
                      square.x + square.size < objective.x ||
                      square.y > objective.y + objective.size ||
                      square.y + square.size < objective.y);
         }
-        
+
         function resetObjective() {
-            objective.x
+            objective.x = Math.random() * (canvas.width - objective.size);
+            objective.y = Math.random() * (canvas.height - objective.size);
+        }
+
+        function resetTimer() {
+            timer = 10;
+        }
+
+        function moveBarriers() {
+            barriers.forEach(barrier => {
+                barrier.x += Math.random() * 10 - 5;
+                barrier.y += Math.random() * 10 - 5;
+                // Keep barriers within canvas
+                barrier.x = Math.max(0, Math.min(barrier.x, canvas.width - barrier.width));
+                barrier.y = Math.max(0, Math.min(barrier.y, canvas.height - barrier.height));
+            });
+        }
+
+        function showMessage() {
+            message.style.display = 'block';
+            setTimeout(() => {
+                message.style.display = 'none';
+            }, 2000);
+        }
+
+        function showEndScreen(win) {
+            endScreen.textContent = win ? 'You Win!' : 'Game Over';
+            endScreen.style.display = 'block';
+            clearInterval(gameInterval);
+        }
+
+        function updateFPS(timestamp) {
+            if (lastFpsUpdate === 0) {
+                lastFpsUpdate = timestamp;
+            }
+            frameCount++;
+            if (timestamp - lastFpsUpdate >= 1000) {
+                fps = frameCount;
+                fpsCounter.textContent = `FPS: ${fps}`;
+                frameCount = 0;
+                lastFpsUpdate = timestamp;
+            }
+        }
+
+        function gameLoop(timestamp) {
+            const deltaTime = timestamp - lastTime;
+            lastTime = timestamp;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            updateFPS(timestamp);
+
+            if (timer > 0) {
+                timer -= deltaTime / 1000;
+                timerElement.textContent = `Time left: ${Math.max(0, Math.ceil(timer))}s`;
+            } else {
+                showEndScreen(false); // Game Over
+            }
+
+            drawSquare();
+            drawObjective();
+            drawBarriers();
+            moveSquare(deltaTime);
+
+            requestAnimationFrame(gameLoop);
+        }
+
+        function startGame() {
+            initializeGame();
+            lastTime = performance.now();
+            requestAnimationFrame(gameLoop);
+        }
+
+        // Fullscreen Button
+        fullscreenButton.addEventListener('click', () => {
+            if (!document.fullscreenElement) {
+                canvas.requestFullscreen();
+            } else {
+                document.exitFullscreen();
+            }
+        });
+
+        // Reset Button
+        resetButton.addEventListener('click', () => {
+            initializeGame();
+        });
+
+        // Settings Button
+        settingsButton.addEventListener('click', () => {
+            settingsTab.style.display = 'flex';
+        });
+
+        // Close Settings Tab
+        closeSettings.addEventListener('click', () => {
+            settingsTab.style.display = 'none';
+        });
+
+        // Key Controls
+        const keyState = {};
+        window.addEventListener('keydown', (e) => {
+            keyState[e.key] = true;
+        });
+        window.addEventListener('keyup', (e) => {
+            keyState[e.key] = false;
+        });
+
+        startGame();
+    </script>
+</body>
+</html>
