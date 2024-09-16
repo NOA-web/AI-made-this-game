@@ -14,7 +14,7 @@
             background-color: #fff;
             border: 1px solid #000;
         }
-        #fullscreenButton, #resetButton {
+        #fullscreenButton, #resetButton, #settingsButton {
             position: absolute;
             padding: 10px;
             border: none;
@@ -38,6 +38,15 @@
         }
         #resetButton:hover {
             background-color: #218838;
+        }
+        #settingsButton {
+            bottom: 10px;
+            left: 10px;
+            background-color: #ffc107;
+            color: black;
+        }
+        #settingsButton:hover {
+            background-color: #e0a800;
         }
         #message {
             position: absolute;
@@ -64,23 +73,63 @@
             color: red;
             display: none;
         }
+        #settingsTab {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.5);
+            display: none;
+            justify-content: center;
+            align-items: center;
+        }
+        #settingsContent {
+            background: white;
+            padding: 20px;
+            border-radius: 5px;
+            position: relative;
+        }
+        #settingsContent #closeSettings {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            font-size: 20px;
+            color: red;
+            cursor: pointer;
+        }
+        #fpsCounter {
+            font-size: 16px;
+            color: black;
+        }
     </style>
 </head>
 <body>
     <button id="fullscreenButton">Toggle Fullscreen</button>
     <button id="resetButton">Reset Game</button>
+    <button id="settingsButton">Settings ⚙️</button>
     <div id="message">You reached the objective!</div>
     <div id="timer">Time left: 10s</div>
     <div id="endScreen"></div>
+    <div id="settingsTab">
+        <div id="settingsContent">
+            <span id="closeSettings">✖️</span>
+            <div id="fpsCounter">FPS: 0</div>
+        </div>
+    </div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const fullscreenButton = document.getElementById('fullscreenButton');
         const resetButton = document.getElementById('resetButton');
+        const settingsButton = document.getElementById('settingsButton');
         const message = document.getElementById('message');
         const timerElement = document.getElementById('timer');
         const endScreen = document.getElementById('endScreen');
+        const settingsTab = document.getElementById('settingsTab');
+        const closeSettings = document.getElementById('closeSettings');
+        const fpsCounter = document.getElementById('fpsCounter');
         
         let isFullscreen = false;
         let lastTime = 0;
@@ -90,7 +139,10 @@
         const maxStars = 5; // Number of stars to collect
         
         let square, objective, barriers;
-        
+        let fps = 0;
+        let frameCount = 0;
+        let lastFpsUpdate = 0;
+
         function initializeGame() {
             square = {
                 x: 50,
@@ -215,136 +267,4 @@
         }
         
         function resetObjective() {
-            objective.x = Math.random() * (canvas.width - objective.size);
-            objective.y = Math.random() * (canvas.height - objective.size);
-        }
-        
-        function resetTimer() {
-            timer = 10;
-        }
-        
-        function moveBarriers() {
-            barriers = generateRandomBarriers(barriers.length);
-        }
-        
-        function showMessage() {
-            message.style.display = 'block';
-            setTimeout(() => {
-                message.style.display = 'none';
-            }, 1000); // Hide the message after 1 second
-        }
-        
-        function showEndScreen(win) {
-            endScreen.textContent = win ? 'WIN' : 'LOSE';
-            endScreen.style.display = 'block';
-            clearInterval(gameInterval); // Stop the game loop
-        }
-        
-        function updateGame(time) {
-            if (starCount >= maxStars && timer > 0) return; // Prevent update if game is over
-            
-            const deltaTime = time - lastTime;
-            lastTime = time;
-            
-            objective.angle += objective.rotationSpeed;
-            
-            moveSquare(deltaTime);
-            
-            drawGame();
-            
-            if (timer > 0) {
-                timer -= deltaTime / 1000;
-                timerElement.textContent = `Time left: ${Math.max(0, Math.ceil(timer))}s`;
-            } else {
-                showEndScreen(false); // LOSE
-            }
-        }
-        
-        function drawGame() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawSquare();
-            drawObjective();
-            drawBarriers();
-        }
-        
-        function toggleFullscreen() {
-            if (!isFullscreen) {
-                if (canvas.requestFullscreen) {
-                    canvas.requestFullscreen();
-                } else if (canvas.mozRequestFullScreen) { // Firefox
-                    canvas.mozRequestFullScreen();
-                } else if (canvas.webkitRequestFullscreen) { // Chrome, Safari, and Opera
-                    canvas.webkitRequestFullscreen();
-                } else if (canvas.msRequestFullscreen) { // IE/Edge
-                    canvas.msRequestFullscreen();
-                }
-                isFullscreen = true;
-                adjustFullscreenElements();
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.mozCancelFullScreen) { // Firefox
-                    document.mozCancelFullScreen();
-                } else if (document.webkitExitFullscreen) { // Chrome, Safari, and Opera
-                    document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) { // IE/Edge
-                    document.msExitFullscreen();
-                }
-                isFullscreen = false;
-                adjustFullscreenElements();
-            }
-        }
-        
-        function adjustFullscreenElements() {
-            if (isFullscreen) {
-                canvas.style.width = '100vw';
-                canvas.style.height = '100vh';
-                timerElement.style.position = 'fixed';
-                timerElement.style.top = '10px';
-                timerElement.style.right = '10px';
-                endScreen.style.position = 'fixed';
-                endScreen.style.top = '50%';
-                endScreen.style.left = '50%';
-                resetButton.style.display = 'none';
-            } else {
-                canvas.style.width = '';
-                canvas.style.height = '';
-                timerElement.style.position = 'absolute';
-                timerElement.style.top = '10px';
-                timerElement.style.right = '10px';
-                endScreen.style.position = 'absolute';
-                resetButton.style.display = 'block';
-            }
-        }
-        
-        function resetGame() {
-            initializeGame();
-            if (gameInterval) {
-                clearInterval(gameInterval);
-            }
-            startGame();
-        }
-        
-        const keyState = {};
-        document.addEventListener('keydown', (event) => {
-            keyState[event.key] = true;
-        });
-        document.addEventListener('keyup', (event) => {
-            keyState[event.key] = false;
-        });
-        
-        fullscreenButton.addEventListener('click', toggleFullscreen);
-        resetButton.addEventListener('click', resetGame);
-        
-        // Initialize the game and start the update loop
-        function startGame() {
-            initializeGame();
-            gameInterval = setInterval(() => {
-                requestAnimationFrame(updateGame);
-            }, 1000 / 240); // 240 FPS
-        }
-        
-        startGame();
-    </script>
-</body>
-</html>
+            objective.x
