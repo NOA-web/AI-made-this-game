@@ -89,7 +89,7 @@
             padding: 20px;
             border-radius: 5px;
             position: relative;
-            width: 300px;
+            width: 400px;
             text-align: center;
         }
         #settingsContent #closeSettings {
@@ -111,6 +111,26 @@
         #settingsOptions input {
             margin-left: 10px;
         }
+        .setting-group {
+            margin: 15px 0;
+        }
+        .setting-group label {
+            display: block;
+        }
+        .setting-group input {
+            margin-left: 10px;
+        }
+        #endlessMode {
+            background: red;
+            color: white;
+            padding: 10px;
+            border: none;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        #endlessMode:hover {
+            background: darkred;
+        }
     </style>
 </head>
 <body>
@@ -125,14 +145,41 @@
             <span id="closeSettings">✖️</span>
             <div id="fpsCounter">FPS: 0</div>
             <div id="settingsOptions">
-                <label>
-                    <input type="checkbox" id="showGrid">
-                    Show Grid
-                </label>
-                <label>
-                    <input type="checkbox" id="enableSound">
-                    Enable Sound
-                </label>
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" id="rainbowMode">
+                        Rainbow Square
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" id="showGrid">
+                        Show Grid
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <label>
+                        <input type="checkbox" id="enableSound">
+                        Enable Sound
+                    </label>
+                </div>
+                <div class="setting-group">
+                    <button id="endlessMode">Endless Mode</button>
+                </div>
+                <div class="setting-group">
+                    <label>
+                        Up: <input type="text" id="keyUp" value="w">
+                    </label>
+                    <label>
+                        Down: <input type="text" id="keyDown" value="s">
+                    </label>
+                    <label>
+                        Left: <input type="text" id="keyLeft" value="a">
+                    </label>
+                    <label>
+                        Right: <input type="text" id="keyRight" value="d">
+                    </label>
+                </div>
             </div>
         </div>
     </div>
@@ -149,8 +196,14 @@
         const settingsTab = document.getElementById('settingsTab');
         const closeSettings = document.getElementById('closeSettings');
         const fpsCounter = document.getElementById('fpsCounter');
+        const rainbowModeCheckbox = document.getElementById('rainbowMode');
         const showGridCheckbox = document.getElementById('showGrid');
         const enableSoundCheckbox = document.getElementById('enableSound');
+        const endlessModeButton = document.getElementById('endlessMode');
+        const keyUpInput = document.getElementById('keyUp');
+        const keyDownInput = document.getElementById('keyDown');
+        const keyLeftInput = document.getElementById('keyLeft');
+        const keyRightInput = document.getElementById('keyRight');
 
         let isFullscreen = false;
         let lastTime = 0;
@@ -161,6 +214,16 @@
         let fps = 0;
         let frameCount = 0;
         let lastFpsUpdate = 0;
+        let endlessMode = false;
+        let rainbowMode = false;
+
+        // Default key bindings
+        const keyBindings = {
+            up: keyUpInput.value,
+            down: keyDownInput.value,
+            left: keyLeftInput.value,
+            right: keyRightInput.value
+        };
 
         let square, objective, barriers;
         let showGrid = false;
@@ -172,9 +235,9 @@
                 y: 50,
                 size: 30,
                 speed: 235,
-                color: 'blue'
+                color: rainbowMode ? getRainbowColor() : 'blue'
             };
-            
+
             objective = {
                 x: Math.random() * (canvas.width - 30),
                 y: Math.random() * (canvas.height - 30),
@@ -183,11 +246,11 @@
                 angle: 0,
                 rotationSpeed: 0.01
             };
-            
+
             barriers = generateRandomBarriers(3);
             starCount = 0;
-            timer = 10;
-            timerElement.textContent = `Time left: ${Math.max(0, Math.ceil(timer))}s`;
+            timer = endlessMode ? Infinity : 10;
+            timerElement.textContent = endlessMode ? 'Endless Mode' : `Time left: ${Math.max(0, Math.ceil(timer))}s`;
             endScreen.style.display = 'none';
         }
 
@@ -205,7 +268,7 @@
         }
 
         function drawSquare() {
-            ctx.fillStyle = square.color;
+            ctx.fillStyle = rainbowMode ? getRainbowColor() : square.color;
             ctx.fillRect(square.x, square.y, square.size, square.size);
         }
 
@@ -243,22 +306,23 @@
         function moveSquare(deltaTime) {
             const oldX = square.x;
             const oldY = square.y;
-            
+
             const movement = square.speed * deltaTime / 1000;
-            
-            if (keyState['w']) square.y -= movement;
-            if (keyState['s']) square.y += movement;
-            if (keyState['a']) square.x -= movement;
-            if (keyState['d']) square.x += movement;
-            
+
+            if (keyState[keyBindings.up]) square.y -= movement;
+            if (keyState[keyBindings.down]) square.y += movement;
+            if (keyState[keyBindings.left]) square.x -= movement;
+            if (keyState[keyBindings.right]) square.x += movement;
+
+            // Check boundaries
             square.x = Math.max(0, Math.min(square.x, canvas.width - square.size));
             square.y = Math.max(0, Math.min(square.y, canvas.height - square.size));
-            
+
             if (checkCollision()) {
                 square.x = oldX;
                 square.y = oldY;
             }
-            
+
             if (checkObjective()) {
                 starCount++;
                 if (starCount < maxStars) {
@@ -294,7 +358,7 @@
         }
 
         function resetTimer() {
-            timer = 10;
+            timer = endlessMode ? Infinity : 10;
         }
 
         function moveBarriers() {
@@ -339,9 +403,11 @@
             ctx.clearRect(0, 0, canvas.width, canvas.height);
             updateFPS(timestamp);
 
-            if (timer > 0) {
+            if (!endlessMode && timer > 0) {
                 timer -= deltaTime / 1000;
                 timerElement.textContent = `Time left: ${Math.max(0, Math.ceil(timer))}s`;
+            } else if (endlessMode) {
+                timerElement.textContent = 'Endless Mode';
             } else {
                 showEndScreen(false); // Game Over
             }
@@ -358,6 +424,14 @@
             initializeGame();
             lastTime = performance.now();
             requestAnimationFrame(gameLoop);
+        }
+
+        function getRainbowColor() {
+            const now = Date.now() * 0.005;
+            const r = Math.sin(now) * 127 + 128;
+            const g = Math.sin(now + 2) * 127 + 128;
+            const b = Math.sin(now + 4) * 127 + 128;
+            return `rgb(${r},${g},${b})`;
         }
 
         // Fullscreen Button
@@ -382,6 +456,24 @@
         // Close Settings Tab
         closeSettings.addEventListener('click', () => {
             settingsTab.style.display = 'none';
+            // Update key bindings
+            keyBindings.up = keyUpInput.value;
+            keyBindings.down = keyDownInput.value;
+            keyBindings.left = keyLeftInput.value;
+            keyBindings.right = keyRightInput.value;
+
+            // Update settings
+            rainbowMode = rainbowModeCheckbox.checked;
+            showGrid = showGridCheckbox.checked;
+            enableSound = enableSoundCheckbox.checked;
+            initializeGame();
+        });
+
+        // Endless Mode Button
+        endlessModeButton.addEventListener('click', () => {
+            endlessMode = !endlessMode;
+            endlessModeButton.textContent = endlessMode ? 'Endless Mode (ON)' : 'Endless Mode (OFF)';
+            initializeGame();
         });
 
         // Key Controls
