@@ -40,13 +40,13 @@
             background-color: #218838;
         }
         #settingsButton {
-            top: 10px;
+            bottom: 10px;
             left: 10px;
-            background-color: #6c757d;
+            background-color: #ffc107;
             color: white;
         }
         #settingsButton:hover {
-            background-color: #5a6268;
+            background-color: #e0a800;
         }
         #message {
             position: absolute;
@@ -78,48 +78,37 @@
             position: fixed;
             top: 0;
             left: 0;
-            width: 100%;
-            height: 100%;
+            width: 100vw;
+            height: 100vh;
             background: rgba(0, 0, 0, 0.5);
-            color: white;
             flex-direction: column;
             align-items: center;
             justify-content: center;
+            z-index: 1000;
         }
         #settingsContent {
-            background: #333;
+            background: white;
             padding: 20px;
             border-radius: 8px;
             text-align: center;
+            position: relative;
         }
-        #settingsTab input[type="checkbox"] {
-            margin-right: 10px;
-        }
-        #settingsTab button {
-            margin: 10px;
-            padding: 10px;
-            background: #007bff;
+        #closeSettings {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background: red;
             color: white;
             border: none;
             cursor: pointer;
-        }
-        #settingsTab button:hover {
-            background: #0056b3;
+            font-size: 18px;
         }
         #fpsCounter {
             position: absolute;
             bottom: 10px;
             left: 10px;
-            font-size: 16px;
+            font-size: 18px;
             color: black;
-        }
-        .closeSettings {
-            position: absolute;
-            top: 10px;
-            right: 10px;
-            font-size: 24px;
-            cursor: pointer;
-            color: purple;
         }
     </style>
 </head>
@@ -130,48 +119,69 @@
     <div id="message">You reached the objective!</div>
     <div id="timer">Time left: 10s</div>
     <div id="endScreen"></div>
-    <div id="fpsCounter">FPS: 60</div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
     <div id="settingsTab">
         <div id="settingsContent">
-            <div class="closeSettings">&times;</div>
+            <button id="closeSettings">X</button>
             <h2>Settings</h2>
-            <label><input type="checkbox" id="rainbowModeCheckbox"> Rainbow Mode</label><br>
-            <label><input type="checkbox" id="krazyStarzCheckbox"> Krazy Starz :D</label><br>
-            <label><input type="checkbox" id="showGridCheckbox"> Show Grid</label><br>
-            <label><input type="checkbox" id="enableSoundCheckbox"> Enable Sound</label><br>
-            <button id="endlessModeButton">Endless Mode (Off)</button><br>
-            <label for="fpsSlider">FPS: <span id="fpsValue">60</span></label><br>
-            <input type="range" id="fpsSlider" min="30" max="120" step="1" value="60"><br>
-            <label for="keyBindings">Change Key Bindings:</label><br>
-            <label for="upKey">Up: <input type="text" id="upKey" value="w"></label><br>
-            <label for="downKey">Down: <input type="text" id="downKey" value="s"></label><br>
-            <label for="leftKey">Left: <input type="text" id="leftKey" value="a"></label><br>
-            <label for="rightKey">Right: <input type="text" id="rightKey" value="d"></label><br>
+            <label>
+                FPS: <input type="range" id="fpsSlider" min="30" max="120" value="60">
+                <span id="fpsValue">60</span>
+            </label>
+            <br>
+            <label>
+                <input type="checkbox" id="rainbowMode"> Rainbow Mode
+            </label>
+            <br>
+            <label>
+                <input type="checkbox" id="krazyStarz"> Krazy Starz :D
+            </label>
+            <br>
+            <label>
+                <input type="checkbox" id="endlessMode"> Endless Mode
+            </label>
+            <br>
+            <h3>Key Bindings</h3>
+            <label>
+                Up: <input type="text" id="upKeyInput" value="w">
+            </label>
+            <br>
+            <label>
+                Down: <input type="text" id="downKeyInput" value="s">
+            </label>
+            <br>
+            <label>
+                Left: <input type="text" id="leftKeyInput" value="a">
+            </label>
+            <br>
+            <label>
+                Right: <input type="text" id="rightKeyInput" value="d">
+            </label>
+            <br>
             <button id="saveKeyBindingsButton">Save Key Bindings</button>
         </div>
     </div>
+    <div id="fpsCounter">FPS: 60</div>
+
     <script>
         const canvas = document.getElementById('gameCanvas');
         const ctx = canvas.getContext('2d');
         const fullscreenButton = document.getElementById('fullscreenButton');
         const resetButton = document.getElementById('resetButton');
         const settingsButton = document.getElementById('settingsButton');
+        const closeSettings = document.getElementById('closeSettings');
         const settingsTab = document.getElementById('settingsTab');
-        const closeSettings = document.querySelector('.closeSettings');
         const fpsCounter = document.getElementById('fpsCounter');
         const fpsSlider = document.getElementById('fpsSlider');
         const fpsValue = document.getElementById('fpsValue');
-        const endlessModeButton = document.getElementById('endlessModeButton');
-        const rainbowModeCheckbox = document.getElementById('rainbowModeCheckbox');
-        const krazyStarzCheckbox = document.getElementById('krazyStarzCheckbox');
-        const showGridCheckbox = document.getElementById('showGridCheckbox');
-        const enableSoundCheckbox = document.getElementById('enableSoundCheckbox');
-        const upKeyInput = document.getElementById('upKey');
-        const downKeyInput = document.getElementById('downKey');
-        const leftKeyInput = document.getElementById('leftKey');
-        const rightKeyInput = document.getElementById('rightKey');
+        const rainbowModeCheckbox = document.getElementById('rainbowMode');
+        const krazyStarzCheckbox = document.getElementById('krazyStarz');
+        const endlessModeButton = document.getElementById('endlessMode');
         const saveKeyBindingsButton = document.getElementById('saveKeyBindingsButton');
+        const upKeyInput = document.getElementById('upKeyInput');
+        const downKeyInput = document.getElementById('downKeyInput');
+        const leftKeyInput = document.getElementById('leftKeyInput');
+        const rightKeyInput = document.getElementById('rightKeyInput');
 
         let isFullscreen = false;
         let lastTime = 0;
@@ -179,16 +189,13 @@
         let gameInterval;
         let starCount = 0;
         const maxStars = 5;
-        let square, objective, barriers, krazyStars, playerTwoSquare;
-        let rainbowMode = false;
-        let endlessMode = false;
-        let krazyStarz = false;
-        let twoPlayerMode = false;
-        let fps = 60;
-        let frameCount = 0;
-        let lastFpsUpdate = 0;
 
-        const keyBindings = {
+        let square, playerTwoSquare, objective, barriers, krazyStars;
+        let rainbowMode = false;
+        let krazyStarz = false;
+        let endlessMode = false;
+        let fps = 60;
+        let keyBindings = {
             up: 'w',
             down: 's',
             left: 'a',
@@ -200,43 +207,35 @@
                 x: 50,
                 y: 50,
                 size: 30,
-                speed: 100,
+                speed: fps / 2,
                 color: rainbowMode ? getRainbowColor() : 'blue'
             };
-            
+
             objective = {
                 x: Math.random() * (canvas.width - 30),
                 y: Math.random() * (canvas.height - 30),
                 size: 30,
-                color: 'yellow',
-                angle: Math.random() * Math.PI * 2
+                color: 'gold',
+                angle: 0,
+                rotationSpeed: 0.01
             };
-            
+
             barriers = [
-                { x: 100, y: 150, width: 60, height: 20 },
-                { x: 200, y: 300, width: 20, height: 60 },
-                { x: 400, y: 200, width: 100, height: 20 }
+                { x: Math.random() * (canvas.width - 60), y: Math.random() * (canvas.height - 20), width: 60, height: 20 },
+                { x: Math.random() * (canvas.width - 20), y: Math.random() * (canvas.height - 60), width: 20, height: 60 },
+                { x: Math.random() * (canvas.width - 100), y: Math.random() * (canvas.height - 20), width: 100, height: 20 }
             ];
 
-            krazyStars = krazyStarz ? Array.from({ length: 10 }, () => ({
-                x: Math.random() * (canvas.width - 30),
-                y: Math.random() * (canvas.height - 30),
-                size: 20,
-                color: getRainbowColor(),
-                angle: Math.random() * Math.PI * 2,
-                speed: Math.random() * 2 + 1
-            })) : [];
+            krazyStars = [];
 
-            if (twoPlayerMode) {
+            if (playerTwoSquare) {
                 playerTwoSquare = {
                     x: canvas.width - 80,
                     y: canvas.height - 80,
                     size: 30,
-                    speed: 100,
+                    speed: fps / 2,
                     color: 'red'
                 };
-            } else {
-                playerTwoSquare = null;
             }
 
             starCount = 0;
@@ -288,17 +287,18 @@
             });
         }
 
-        function moveSquare(deltaTime) {
+        function moveSquare(square, keyBindings) {
             const oldX = square.x;
             const oldY = square.y;
 
-            const movement = square.speed * deltaTime / 1000;
+            const movement = square.speed * (1000 / fps) / 1000;
 
             if (keyState[keyBindings.up]) square.y -= movement;
             if (keyState[keyBindings.down]) square.y += movement;
             if (keyState[keyBindings.left]) square.x -= movement;
             if (keyState[keyBindings.right]) square.x += movement;
 
+            // Check boundaries
             square.x = Math.max(0, Math.min(square.x, canvas.width - square.size));
             square.y = Math.max(0, Math.min(square.y, canvas.height - square.size));
 
@@ -307,7 +307,7 @@
                 square.y = oldY;
             }
 
-            if (checkObjective()) {
+            if (checkObjective(square)) {
                 starCount++;
                 if (starCount < maxStars) {
                     showMessage();
@@ -315,59 +315,40 @@
                     resetTimer();
                     moveBarriers();
                 } else {
-                    showEndScreen(true);
-                }
-            }
-
-            if (playerTwoSquare) {
-                // Player Two Movement
-                const oldX2 = playerTwoSquare.x;
-                const oldY2 = playerTwoSquare.y;
-                const movement2 = playerTwoSquare.speed * deltaTime / 1000;
-
-                if (keyState['ArrowUp']) playerTwoSquare.y -= movement2;
-                if (keyState['ArrowDown']) playerTwoSquare.y += movement2;
-                if (keyState['ArrowLeft']) playerTwoSquare.x -= movement2;
-                if (keyState['ArrowRight']) playerTwoSquare.x += movement2;
-
-                playerTwoSquare.x = Math.max(0, Math.min(playerTwoSquare.x, canvas.width - playerTwoSquare.size));
-                playerTwoSquare.y = Math.max(0, Math.min(playerTwoSquare.y, canvas.height - playerTwoSquare.size));
-
-                if (checkCollision(true)) {
-                    playerTwoSquare.x = oldX2;
-                    playerTwoSquare.y = oldY2;
-                }
-
-                if (checkObjective(true)) {
-                    starCount++;
-                    if (starCount < maxStars) {
-                        showMessage();
-                        resetObjective();
-                        resetTimer();
-                        moveBarriers();
-                    } else {
-                        showEndScreen(true);
-                    }
+                    showEndScreen(true); // WIN
                 }
             }
         }
 
-        function checkCollision(isPlayerTwo = false) {
-            const currentSquare = isPlayerTwo ? playerTwoSquare : square;
-            return barriers.some(barrier => {
-                return !(currentSquare.x > barrier.x + barrier.width ||
-                         currentSquare.x + currentSquare.size < barrier.x ||
-                         currentSquare.y > barrier.y + barrier.height ||
-                         currentSquare.y + currentSquare.size < barrier.y);
+        function moveKrazyStars() {
+            krazyStars.forEach(star => {
+                star.x += star.vx;
+                star.y += star.vy;
+
+                if (star.x < 0 || star.x > canvas.width || star.y < 0 || star.y > canvas.height) {
+                    // Reset position and speed if off-screen
+                    star.x = Math.random() * canvas.width;
+                    star.y = Math.random() * canvas.height;
+                    star.vx = (Math.random() - 0.5) * 2;
+                    star.vy = (Math.random() - 0.5) * 2;
+                }
             });
         }
 
-        function checkObjective(isPlayerTwo = false) {
-            const currentSquare = isPlayerTwo ? playerTwoSquare : square;
-            return !(currentSquare.x > objective.x + objective.size ||
-                     currentSquare.x + currentSquare.size < objective.x ||
-                     currentSquare.y > objective.y + objective.size ||
-                     currentSquare.y + currentSquare.size < objective.y);
+        function checkCollision() {
+            return barriers.some(barrier => {
+                return !(square.x > barrier.x + barrier.width ||
+                         square.x + square.size < barrier.x ||
+                         square.y > barrier.y + barrier.height ||
+                         square.y + square.size < barrier.y);
+            });
+        }
+
+        function checkObjective(square) {
+            return !(square.x > objective.x + objective.size ||
+                     square.x + square.size < objective.x ||
+                     square.y > objective.y + objective.size ||
+                     square.y + square.size < objective.y);
         }
 
         function resetObjective() {
@@ -391,42 +372,115 @@
             message.style.display = 'block';
             setTimeout(() => {
                 message.style.display = 'none';
-            }, 1000);
+            }, 1000); // Hide the message after 1 second
         }
 
         function showEndScreen(win) {
             endScreen.textContent = win ? 'WIN' : 'LOSE';
             endScreen.style.display = 'block';
-            clearInterval(gameInterval);
+            clearInterval(gameInterval); // Stop the game loop
         }
 
         function updateGame(time) {
-            if (starCount >= maxStars && timer > 0) return;
+            if (starCount >= maxStars && timer > 0) return; // Prevent update if game is over
 
             const deltaTime = time - lastTime;
             lastTime = time;
 
-            objective.angle += 0.01;
-
-            moveSquare(deltaTime);
-
-            if (krazyStarz) {
-                krazyStars.forEach(star => {
-                    star.x += Math.cos(star.angle) * star.speed;
-                    star.y += Math.sin(star.angle) * star.speed;
-                    if (star.x < 0 || star.x > canvas.width || star.y < 0 || star.y > canvas.height) {
-                        star.angle += Math.PI;
-                    }
+            if (playerTwoSquare) {
+                moveSquare(playerTwoSquare, {
+                    up: 'ArrowUp',
+                    down: 'ArrowDown',
+                    left: 'ArrowLeft',
+                    right: 'ArrowRight'
                 });
             }
 
-            drawGame();
-
-            if (timer > 0) {
+            if (!endlessMode) {
                 timer -= deltaTime / 1000;
                 updateTimerDisplay();
+                if (timer <= 0) {
+                    showEndScreen(false); // LOSE
+                    return;
+                }
+            }
+
+            if (krazyStarz) {
+                moveKrazyStars();
+            }
+
+            objective.angle += objective.rotationSpeed;
+
+            moveSquare(square, keyBindings);
+            drawGame();
+
+            if (endlessMode) {
+                timerElement.textContent = 'Endless Mode';
+            }
+        }
+
+        function drawGame() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            drawSquare(square, rainbowMode ? getRainbowColor() : square.color);
+            drawObjective();
+            drawBarriers();
+            if (playerTwoSquare) {
+                drawSquare(playerTwoSquare, 'red');
+            }
+            if (krazyStarz) {
+                drawKrazyStars();
+            }
+        }
+
+        function toggleFullscreen() {
+            if (!isFullscreen) {
+                if (canvas.requestFullscreen) {
+                    canvas.requestFullscreen();
+                } else if (canvas.mozRequestFullScreen) { // Firefox
+                    canvas.mozRequestFullScreen();
+                } else if (canvas.webkitRequestFullscreen) { // Chrome, Safari, and Opera
+                    canvas.webkitRequestFullscreen();
+                } else if (canvas.msRequestFullscreen) { // IE/Edge
+                    canvas.msRequestFullscreen();
+                }
+                isFullscreen = true;
+                adjustFullscreenElements();
             } else {
-                showEndScreen(false);
+                if (document.exitFullscreen) {
+                    document.exitFullscreen();
+                } else if (document.mozCancelFullScreen) { // Firefox
+                    document.mozCancelFullScreen();
+                } else if (document.webkitExitFullscreen) { // Chrome, Safari, and Opera
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { // IE/Edge
+                    document.msExitFullscreen();
+                }
+                isFullscreen = false;
+                adjustFullscreenElements();
+            }
+        }
+
+        function adjustFullscreenElements() {
+            if (isFullscreen) {
+                canvas.style.width = '100vw';
+                canvas.style.height = '100vh';
+                timerElement.style.position = 'fixed';
+                timerElement.style.top = '10px';
+                timerElement.style.right = '10px';
+                endScreen.style.position = 'fixed';
+                endScreen.style.top = '50%';
+                endScreen.style.left = '50%';
+                resetButton.style.display = 'none';
+                settingsButton.style.display = 'none';
+            } else {
+                canvas.style.width = '';
+                canvas.style.height = '';
+                timerElement.style.position = 'absolute';
+                timerElement.style.top = '10px';
+                timerElement.style.right = '10px';
+                endScreen.style.position = 'absolute';
+                resetButton.style.display = 'block';
+                settingsButton.style.display = 'block';
             }
         }
 
@@ -434,61 +488,37 @@
             timerElement.textContent = `Time left: ${Math.max(0, Math.ceil(timer))}s`;
         }
 
-        function drawGame() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            drawSquare(square, square.color);
-            if (playerTwoSquare) {
-                drawSquare(playerTwoSquare, playerTwoSquare.color);
-            }
-            drawObjective();
-            drawBarriers();
-            drawKrazyStars();
-        }
-
-        function toggleFullscreen() {
-            if (!isFullscreen) {
-                if (canvas.requestFullscreen) {
-                    canvas.requestFullscreen();
-                } else if (canvas.mozRequestFullScreen) {
-                    canvas.mozRequestFullScreen();
-                } else if (canvas.webkitRequestFullscreen) {
-                    canvas.webkitRequestFullscreen();
-                } else if (canvas.msRequestFullscreen) {
-                    canvas.msRequestFullscreen();
-                }
-                isFullscreen = true;
-            } else {
-                if (document.exitFullscreen) {
-                    document.exitFullscreen();
-                } else if (document.mozCancelFullScreen) {
-                    document.mozCancelFullScreen();
-                } else if (document.webkitExitFullscreen) {
-                    document.webkitExitFullscreen();
-                } else if (document.msExitFullscreen) {
-                    document.msExitFullscreen();
-                }
-                isFullscreen = false;
-            }
-        }
-
         function getRainbowColor() {
             const colors = ['#FF0000', '#FF7F00', '#FFFF00', '#00FF00', '#0000FF', '#4B0082', '#9400D3'];
-            return colors[Math.floor(Math.random() * colors.length)];
-        }
-
-        function adjustSpeed(speed) {
-            if (twoPlayerMode) {
-                square.speed = speed / 2;
-                if (playerTwoSquare) {
-                    playerTwoSquare.speed = speed / 2;
-                }
-            } else {
-                square.speed = speed;
-            }
+            const index = Math.floor(Math.random() * colors.length);
+            return colors[index];
         }
 
         function startGame() {
             initializeGame();
+            gameInterval = setInterval(() => {
+                requestAnimationFrame(updateGame);
+            }, 1000 / fps); // Adjust to desired FPS
+        }
+
+        fullscreenButton.addEventListener('click', toggleFullscreen);
+        resetButton.addEventListener('click', () => {
+            initializeGame();
+            startGame();
+        });
+        settingsButton.addEventListener('click', () => {
+            settingsTab.style.display = 'flex';
+        });
+        closeSettings.addEventListener('click', () => {
+            settingsTab.style.display = 'none';
+        });
+        fpsSlider.addEventListener('input', () => {
+            fps = parseInt(fpsSlider.value, 10);
+            fpsValue.textContent = fps;
+            adjustSpeed(fps);
+        });
+
+        function adjustSpeed(fps) {
             if (gameInterval) {
                 clearInterval(gameInterval);
             }
@@ -497,27 +527,8 @@
             }, 1000 / fps);
         }
 
-        fullscreenButton.addEventListener('click', toggleFullscreen);
-
-        resetButton.addEventListener('click', startGame);
-
-        settingsButton.addEventListener('click', () => {
-            settingsTab.style.display = 'flex';
-        });
-
-        closeSettings.addEventListener('click', () => {
-            settingsTab.style.display = 'none';
-        });
-
-        fpsSlider.addEventListener('input', () => {
-            fpsValue.textContent = fpsSlider.value;
-            fps = parseInt(fpsSlider.value);
-            adjustSpeed(fps);
-        });
-
-        endlessModeButton.addEventListener('click', () => {
-            endlessMode = !endlessMode;
-            endlessModeButton.textContent = `Endless Mode (${endlessMode ? 'On' : 'Off'})`;
+        endlessModeButton.addEventListener('change', () => {
+            endlessMode = endlessModeButton.checked;
         });
 
         rainbowModeCheckbox.addEventListener('change', () => {
@@ -527,22 +538,39 @@
 
         krazyStarzCheckbox.addEventListener('change', () => {
             krazyStarz = krazyStarzCheckbox.checked;
+            if (krazyStarz) {
+                krazyStars = Array.from({ length: 10 }, () => ({
+                    x: Math.random() * canvas.width,
+                    y: Math.random() * canvas.height,
+                    size: 20,
+                    color: getRainbowColor(),
+                    vx: (Math.random() - 0.5) * 2,
+                    vy: (Math.random() - 0.5) * 2,
+                    angle: Math.random() * Math.PI * 2
+                }));
+            } else {
+                krazyStars = [];
+            }
         });
 
         saveKeyBindingsButton.addEventListener('click', () => {
-            keyBindings.up = upKeyInput.value;
-            keyBindings.down = downKeyInput.value;
-            keyBindings.left = leftKeyInput.value;
-            keyBindings.right = rightKeyInput.value;
+            keyBindings = {
+                up: upKeyInput.value || 'w',
+                down: downKeyInput.value || 's',
+                left: leftKeyInput.value || 'a',
+                right: rightKeyInput.value || 'd'
+            };
         });
 
-        document.addEventListener('keydown', (event) => {
-            keyState[event.key] = true;
+        document.addEventListener('keydown', (e) => {
+            keyState[e.key] = true;
         });
 
-        document.addEventListener('keyup', (event) => {
-            keyState[event.key] = false;
+        document.addEventListener('keyup', (e) => {
+            keyState[e.key] = false;
         });
+
+        const keyState = {};
 
         startGame();
     </script>
