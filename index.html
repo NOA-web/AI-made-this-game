@@ -89,18 +89,27 @@
             padding: 20px;
             border-radius: 5px;
             position: relative;
+            width: 300px;
+            text-align: center;
         }
         #settingsContent #closeSettings {
             position: absolute;
-            top: 12px;
-            right: 13px;
+            top: 10px;
+            right: 10px;
             font-size: 20px;
-            color: red;
+            color: purple;
             cursor: pointer;
         }
-        #fpsCounter {
+        #fpsCounter, #settingsOptions {
             font-size: 16px;
             color: black;
+        }
+        #settingsOptions label {
+            display: block;
+            margin: 10px 0;
+        }
+        #settingsOptions input {
+            margin-left: 10px;
         }
     </style>
 </head>
@@ -115,6 +124,16 @@
         <div id="settingsContent">
             <span id="closeSettings">✖️</span>
             <div id="fpsCounter">FPS: 0</div>
+            <div id="settingsOptions">
+                <label>
+                    <input type="checkbox" id="showGrid">
+                    Show Grid
+                </label>
+                <label>
+                    <input type="checkbox" id="enableSound">
+                    Enable Sound
+                </label>
+            </div>
         </div>
     </div>
     <canvas id="gameCanvas" width="800" height="600"></canvas>
@@ -130,18 +149,22 @@
         const settingsTab = document.getElementById('settingsTab');
         const closeSettings = document.getElementById('closeSettings');
         const fpsCounter = document.getElementById('fpsCounter');
+        const showGridCheckbox = document.getElementById('showGrid');
+        const enableSoundCheckbox = document.getElementById('enableSound');
 
         let isFullscreen = false;
         let lastTime = 0;
         let timer = 10;
         let gameInterval;
-        let starCount = 0; // To track the number of stars collected
-        const maxStars = 5; // Number of stars to collect
+        let starCount = 0;
+        const maxStars = 5;
         let fps = 0;
         let frameCount = 0;
         let lastFpsUpdate = 0;
 
         let square, objective, barriers;
+        let showGrid = false;
+        let enableSound = false;
 
         function initializeGame() {
             square = {
@@ -228,7 +251,6 @@
             if (keyState['a']) square.x -= movement;
             if (keyState['d']) square.x += movement;
             
-            // Check boundaries
             square.x = Math.max(0, Math.min(square.x, canvas.width - square.size));
             square.y = Math.max(0, Math.min(square.y, canvas.height - square.size));
             
@@ -279,7 +301,6 @@
             barriers.forEach(barrier => {
                 barrier.x += Math.random() * 10 - 5;
                 barrier.y += Math.random() * 10 - 5;
-                // Keep barriers within canvas
                 barrier.x = Math.max(0, Math.min(barrier.x, canvas.width - barrier.width));
                 barrier.y = Math.max(0, Math.min(barrier.y, canvas.height - barrier.height));
             });
