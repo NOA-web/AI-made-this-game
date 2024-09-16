@@ -285,4 +285,66 @@
                     document.exitFullscreen();
                 } else if (document.mozCancelFullScreen) { // Firefox
                     document.mozCancelFullScreen();
-                } else if (document.webkit
+                } else if (document.webkitExitFullscreen) { // Chrome, Safari, and Opera
+                    document.webkitExitFullscreen();
+                } else if (document.msExitFullscreen) { // IE/Edge
+                    document.msExitFullscreen();
+                }
+                isFullscreen = false;
+                adjustFullscreenElements();
+            }
+        }
+        
+        function adjustFullscreenElements() {
+            if (isFullscreen) {
+                canvas.style.width = '100vw';
+                canvas.style.height = '100vh';
+                timerElement.style.position = 'fixed';
+                timerElement.style.top = '10px';
+                timerElement.style.right = '10px';
+                endScreen.style.position = 'fixed';
+                endScreen.style.top = '50%';
+                endScreen.style.left = '50%';
+                resetButton.style.display = 'none';
+            } else {
+                canvas.style.width = '';
+                canvas.style.height = '';
+                timerElement.style.position = 'absolute';
+                timerElement.style.top = '10px';
+                timerElement.style.right = '10px';
+                endScreen.style.position = 'absolute';
+                resetButton.style.display = 'block';
+            }
+        }
+        
+        function resetGame() {
+            initializeGame();
+            if (gameInterval) {
+                clearInterval(gameInterval);
+            }
+            startGame();
+        }
+        
+        const keyState = {};
+        document.addEventListener('keydown', (event) => {
+            keyState[event.key] = true;
+        });
+        document.addEventListener('keyup', (event) => {
+            keyState[event.key] = false;
+        });
+        
+        fullscreenButton.addEventListener('click', toggleFullscreen);
+        resetButton.addEventListener('click', resetGame);
+        
+        // Initialize the game and start the update loop
+        function startGame() {
+            initializeGame();
+            gameInterval = setInterval(() => {
+                requestAnimationFrame(updateGame);
+            }, 1000 / 60); // 60 FPS
+        }
+        
+        startGame();
+    </script>
+</body>
+</html>
